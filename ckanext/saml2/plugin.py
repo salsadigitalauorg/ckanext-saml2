@@ -248,7 +248,7 @@ class Saml2Plugin(p.SingletonPlugin):
                 map, controller='ckanext.saml2.plugin:Saml2Controller') as m:
             m.connect('saml2_unauthorized', '/saml2_unauthorized',
                       action='saml2_unauthorized')
-            m.connect('saml2_slo', '/slo', action='slo')
+            m.connect('saml2_slo', '/saml2/slo', action='slo')
             m.connect('staff_login', '/service/login', action='staff_login')
         return map
 
