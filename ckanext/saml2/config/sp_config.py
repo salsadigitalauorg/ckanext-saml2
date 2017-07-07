@@ -15,8 +15,8 @@ CONFIG = {
         'sp': {
             'name' : 'CKAN SP',
             'endpoints': {
-                'assertion_consumer_service': [BASE],
-                'single_logout_service' : [(BASE + 'slo',
+                'assertion_consumer_service': [BASE + 'saml2/sso'],
+                'single_logout_service' : [(BASE + 'saml2/slo',
                                             BINDING_HTTP_REDIRECT)],
             },
             'required_attributes': [
