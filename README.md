@@ -1,7 +1,6 @@
 ckanext-saml2
 ==============
-
-SAML2 Athentication extension
+An extension to enable Single Sign On(SSO) for CKAN data portals via SAML2 Authentication.
 
 #### Requirements
 The following packages are required: memcached, repoze, m2crypto, xmlsec1, xmlsec1-openssl, swig
@@ -88,6 +87,8 @@ up-to-date automatically run the following script:
 ```
 /usr/lib/ckan/default/bin/python ckanext/saml2/admin/fresh_idp_metadata.py -url metadata_url -path local_path
 ```
+CKAN must be reloaded after the metadata is updated, by, for example, reloading httpd.
+
 
 #### Command line
 

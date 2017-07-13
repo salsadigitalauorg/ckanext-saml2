@@ -62,9 +62,9 @@ def request_reset(context, data_dict):
     method = p.toolkit.request.method
     username = p.toolkit.request.params.get('user', '')
     if NATIVE_LOGIN_ENABLED:
-        if method == 'GET' or (
-                method == 'POST' and
-                is_local_user(model.User.get(username)) is not False):
+        user = model.User.get(username)
+        if method == 'GET' or user is None or (
+                method == 'POST' and is_local_user(user)):
             return logic.auth.get.request_reset(context, data_dict)
     return _no_permissions(context, msg)
 
@@ -282,16 +282,18 @@ class Saml2Plugin(p.SingletonPlugin):
         environ = p.toolkit.request.environ
 
         name_id = environ.get('REMOTE_USER', '')
-        c.user = unserialise_nameid(name_id).text
-        if not c.user:
-            log.info("Couldn't decode nameid, giving up")
+        log.debug("REMOTE_USER = \"{0}\"".format(name_id))
+
+        name_id = unserialise_nameid(name_id).text
+        if not name_id:
+            log.info('Ignoring REMOTE_USER - does not look like a NameID')
             return
+        log.debug('NameId: %s' % (name_id))
 
-        user_info = saml2_get_user_info(c.user)
-        if user_info is not None:
-            c.user = user_info[1].name
+        saml2_user_info = saml2_get_user_info(name_id)
+        if saml2_user_info is not None:
+            c.user = saml2_user_info[1].name
 
-        log.debug("REMOTE_USER = \"{0}\"".format(c.user))
         log.debug("repoze.who.identity = {0}".format(dict(environ["repoze.who.identity"])))
 
         # get the actual user info from the saml2auth client
@@ -368,6 +370,7 @@ class Saml2Plugin(p.SingletonPlugin):
                 came_from = get_came_from(relay_state)
                 if came_from:
                     h.redirect_to(came_from)
+            h.redirect_to('/dashboard')
 
     def _create_or_update_user(self, user_name, saml_info):
         """Create or update the subject's user account and return the user
@@ -551,14 +554,14 @@ class Saml2Plugin(p.SingletonPlugin):
         environ = p.toolkit.request.environ
 
         userobj = p.toolkit.c.userobj
-        sp_slo = p.toolkit.asbool(config.get('saml2.sp_initiates_slo', True))
-        if not sp_slo or userobj and is_local_user(userobj):
+        sp_initiates_slo = p.toolkit.asbool(config.get('saml2.sp_initiates_slo', True))
+        if not sp_initiates_slo or userobj and is_local_user(userobj):
             plugins = environ['repoze.who.plugins']
             friendlyform_plugin = plugins.get('friendlyform')
-            rememberer_name = friendlyform_plugin.rememberer_name
+            rememberer = environ['repoze.who.plugins'][friendlyform_plugin.rememberer_name]
             domain = p.toolkit.request.environ['HTTP_HOST']
-            base.response.delete_cookie(rememberer_name, domain='.' + domain)
-            base.response.delete_cookie(rememberer_name)
+            base.response.delete_cookie(rememberer.cookie_name, domain='.' + domain)
+            base.response.delete_cookie(rememberer.cookie_name)
             h.redirect_to(controller='home', action='index')
 
         subject_id = environ["repoze.who.identity"]['repoze.who.userid']
