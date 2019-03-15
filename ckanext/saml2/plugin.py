@@ -24,6 +24,8 @@ from sqlalchemy import func
 from ckan.logic.action.delete import user_delete as ckan_user_delete
 from ckan.logic.action.update import user_update as ckan_user_update
 
+from ckan.views.user import _get_repoze_handler
+from flask import Blueprint, make_response
 
 log = logging.getLogger('ckanext.saml2')
 DELETE_USERS_PERMISSION = 'delete_users'
@@ -234,6 +236,16 @@ def saml2_user_update(context, data_dict):
         return ckan_user_update(context, data_dict)
 
 
+def view_logout():
+    for item in p.PluginImplementations(p.IAuthenticator):
+        response = item.logout()
+    if response:
+        return response
+    url = h.url_for(u'user.logged_out_page')
+    return h.redirect_to(
+        _get_repoze_handler(u'logout_handler_path') + u'?came_from=' + url,
+        parse_url=True)
+
 
 class Saml2Plugin(p.SingletonPlugin):
     """SAML2 plugin."""
@@ -245,6 +257,7 @@ class Saml2Plugin(p.SingletonPlugin):
     p.implements(p.IConfigurable)
     p.implements(p.ITemplateHelpers)
     p.implements(p.IActions)
+    p.implements(p.IBlueprint)
 
     def update_config(self, config):
         """Update environment config."""
@@ -276,6 +289,12 @@ class Saml2Plugin(p.SingletonPlugin):
             m.connect('staff_login', '/service/login', action='staff_login')
 
         return map
+
+    #IBlueprint
+    def get_blueprint(self):
+        blueprint = Blueprint(self.name, self.__module__)
+        blueprint.add_url_rule('/user/_logout', '_logout', view_logout)
+        return blueprint
 
     def make_password(self):
         """Create a hard to guess password."""
@@ -582,9 +601,12 @@ class Saml2Plugin(p.SingletonPlugin):
             friendlyform_plugin = plugins.get('friendlyform')
             rememberer = environ['repoze.who.plugins'][friendlyform_plugin.rememberer_name]
             domain = p.toolkit.request.environ['HTTP_HOST']
-            base.response.delete_cookie(rememberer.cookie_name, domain='.' + domain)
-            base.response.delete_cookie(rememberer.cookie_name)
-            h.redirect_to(controller='home', action='index')
+
+            resp = make_response("", 302)
+            resp.set_cookie(rememberer.cookie_name, '', domain='.' + domain, max_age=0)
+            resp.set_cookie(rememberer.cookie_name, '', max_age=0)
+            resp.headers['location'] = h.url_for(controller='home', action='index')
+            return resp
 
         subject_id = environ["repoze.who.identity"]['repoze.who.userid']
         name_id = unserialise_nameid(subject_id)
