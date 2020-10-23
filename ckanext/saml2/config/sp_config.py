@@ -3,42 +3,32 @@ import os.path
 from saml2 import BINDING_HTTP_REDIRECT
 from saml2.saml import NAME_FORMAT_URI
 
-BASE= 'https://catalog.data.gov/'
+#BASE= 'https://catalog.data.gov/'
 #BASE= 'https://saml-test.datagov.ckan.org/'
-#BASE = 'http://localhost:5000/'
+BASE = 'http://datant.loc:5000/'
 CONFIG_PATH = os.path.dirname(__file__)
 
 CONFIG = {
-    'entityid' : 'urn:mace:umu.se:saml:ckan:sp',
+    'entityid' : 'urn:mace:umu.se:saml:datant_ckan:sp',
     'description': 'CKAN saml2 authorizor',
     'service': {
         'sp': {
             'name' : 'CKAN SP',
             'endpoints': {
-                'assertion_consumer_service': [BASE],
-                'single_logout_service' : [(BASE + 'slo',
-                                            BINDING_HTTP_REDIRECT)],
+                'assertion_consumer_service': [BASE]
             },
             'required_attributes': [
                 'uid',
-                'name',
-                'mail',
-                'status',
-                'roles',
-                'field_display_name',
-                'realname',
-                'field_unique_id',
-                'field_type_of_user',
-                'field_organization_type',
-                'field_agency',
-                'field_organization',
+                'displayName',
+                'mail'              
             ],
             'allow_unsolicited': True,
             'optional_attributes': [],
-            'idp': ['urn:mace:umu.se:saml:ckan:idp'],
+            'idp': ['urn:mace:umu.se:saml:datant_ckan:idp'],
         }
     },
-    'debug': 0,
+    'allow_unknown_attributes': True,
+    'debug': 1,
     'key_file': CONFIG_PATH + '/pki/mykey.pem',
     'cert_file': CONFIG_PATH + '/pki/mycert.pem',
     'attribute_map_dir': CONFIG_PATH + '/../attributemaps',
@@ -65,6 +55,6 @@ CONFIG = {
             'maxBytes': 100000,
             'backupCount': 5,
             },
-        'loglevel': 'error',
+        'loglevel': 'DEBUG',
     }
 }
